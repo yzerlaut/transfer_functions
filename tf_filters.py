@@ -8,6 +8,7 @@ Vthre=-50*1e-3; refrac = 5*1e-3 ;
 
 import numpy as np
 import matplotlib.pylab as plt
+from scipy import linalg
 
 def ornstein_uhlenbeck(tmax, dt, mu, sigma, tau):
     """return a realisation of ornstein-uhlenbeck process"""
@@ -74,4 +75,24 @@ def calculate_sta(dt, x, spikes, window):
     lag = np.arange(len(sta))*dt+window[0]
     return lag,sta/len(spikes)
     
+    
+def ou_cov_matrix(sigma, tau, n_max, dt):
+    """calculate and return covariance matrix of ornstein-uhlenbeck proccess"""
+    time_lag = np.arange(n_max)*dt
+    column = sigma**2*np.exp(-time_lag/tau)
+    cov = linalg.toeplitz(column)
+    return cov
+
+def rotate_matrix(vec, mat):
+    return np.dot(np.dot(vec, mat), vec.T)
+
+def estimate_cov_matrix(y, n_max):
+    """ argument : vector (np.array), int (number of interesting points in the past)
+    returns the measured covariance matrix of a vector """
+    
+    y_nomean = y - np.mean(y)
+    n_pts = len(y_nomean)
+    cov = [np.mean(y_nomean[i:]*y_nomean[:n_pts-i])
+          for i in range(n_max)]
+    return linalg.toeplitz(cov)
     
