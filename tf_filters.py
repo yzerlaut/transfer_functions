@@ -67,7 +67,7 @@ def calculate_sta(dt, x, spikes, window):
     """ function that calculate the STA of x 
     arguments : dt (float), x, spikes (np.array), window (tuple of minimum and maximum lag in time units)"""
     
-    spike_train = np.histogram(spikes, np.arange(len(v))*dt)[0]
+    spike_train = np.histogram(spikes, np.arange(len(x))*dt)[0]
     min_index = int(window[0]/dt)
     max_index = len(spike_train) - int(window[1]/dt)
     sta = np.correlate(x, spike_train[-min_index-1:max_index]) ### TO BE CHECK
