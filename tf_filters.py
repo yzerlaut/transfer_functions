@@ -95,4 +95,13 @@ def estimate_cov_matrix(y, n_max):
     cov = [np.mean(y_nomean[i:]*y_nomean[:n_pts-i])
           for i in range(n_max)]
     return linalg.toeplitz(cov)
-    
+
+def whiten_filter(cov_matrix, sta_filter):
+    """ remove the signal correlations from the STA filters
+    arguments : covariance matrix of the signal, STA filters """
+        
+    evals, evecs = np.linalg.eig(cov_matrix)
+    d = 1./np.sqrt(evals)
+    whitening_filter = np.dot(evecs,np.dot(np.diag(d),evecs.T))
+    sta_whitened = np.dot(whitening_filter, sta_filter-sta_filter.mean())
+    return sta_whitened
