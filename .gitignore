@@ -1,5 +1,8 @@
 *.py[cod]
 
+# vi temporaries
+*.sw[pc]
+
 # C extensions
 *.so
 
