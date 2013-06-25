@@ -36,11 +36,11 @@ def rectify(x):
     return out
 
 
-def launch_sim(dt, ge, gi, spiking_mech=True):
+def launch_sim(dt, ge, gi, spiking_mech=True, max_spikes=np.inf):
     """ functions that solve the membrane equations for 2 time varying 
     excitatory and inhibitory conductances
     N.B. reversal potentials, membrane prop. should be global """
-    
+
     try: 
         tstop = len(ge)*dt
     except TypeError:
@@ -61,8 +61,11 @@ def launch_sim(dt, ge, gi, spiking_mech=True):
         if v[i+1]>Vthre and spiking_mech:
             last_spike = t[i+1]
             spikes.append(last_spike)
-            #v[i+1]=0 ## UNCOMMENT to have a nice spike shape...
+            if len(spikes)==max_spikes:
+                break
+
     return t, v, spikes
+
 
 def calculate_sta(dt, x, spikes, window):
     """ function that calculate the STA of x 
@@ -144,6 +147,13 @@ def estimate_nonlinearity_2d(ge_trace, ge_sta, gi_trace, gi_sta, spikes, dt, nbi
     ge_proj, ge_spike = _calc_projections(ge_trace, ge_sta, spk_idx)
     gi_proj, gi_spike = _calc_projections(gi_trace, gi_sta, spk_idx)
     
+    ge_bins, gi_bins, f_val = calculate_nonlinearity(
+                ge_proj, gi_proj, ge_spike, gi_spike, nbins)
+    
+    return ge_bins, gi_bins, f_val
+
+def calculate_nonlinearity(ge_proj, gi_proj, ge_spike, gi_spike, nbins):
+    
     ge_bins = np.linspace(ge_proj.min(), ge_proj.max(), nbins)
     gi_bins = np.linspace(gi_proj.min(), gi_proj.max(), nbins)
     n_total, _, _ = np.histogram2d(ge_proj, gi_proj,  [ge_bins, gi_bins])
@@ -151,3 +161,18 @@ def estimate_nonlinearity_2d(ge_trace, ge_sta, gi_trace, gi_sta, spikes, dt, nbi
     f_val = n_spike/n_total
     f_val[n_total==0] = 0
     return ge_bins[:-1], gi_bins[:-1], f_val
+
+def find_slope(pge_spikes, pgi_spikes):
+    """
+    argument : pge, pgi are the projections of the conductances on the filter
+    returns : the direction of the larger variations in the (pge,gpi) plane
+    """
+
+    pge_spk = pge_spikes - pge_spikes.mean()
+    pgi_spk = pgi_spikes - pgi_spikes.mean()
+    pg = np.vstack((pge_spk,pgi_spk))
+    cov = np.dot(pg,pg.T)
+    cov /= len(pg)
+    evals, evecs = np.linalg.eig(cov)
+    return evecs[:,0]    
+ 
