@@ -105,3 +105,49 @@ def whiten_filter(cov_matrix, sta_filter):
     whitening_filter = np.dot(evecs,np.dot(np.diag(d),evecs.T))
     sta_whitened = np.dot(whitening_filter, sta_filter-sta_filter.mean())
     return sta_whitened
+
+def whiten_filter_regularised(cov_matrix, sta_filter, cutoff=0):
+    """ remove the signal correlations from the STA filters
+    arguments : covariance matrix of the signal, STA filters """
+        
+    evals, evecs = np.linalg.eig(cov_matrix)
+    d = 1./np.sqrt(evals)
+    d[evals<cutoff*evals.max()]=0
+    whitening_filter = np.dot(evecs,np.dot(np.diag(d), evecs.T))
+    sta_whitened = np.dot(whitening_filter, sta_filter-sta_filter.mean())
+    return sta_whitened
+
+def _calc_projections(g_trace, sta, spk_idx):
+    total_ensemble = np.convolve(g_trace, sta)
+    spike_ensemble = total_ensemble[spk_idx+len(sta)]
+    return total_ensemble, spike_ensemble
+
+def estimate_nonlinearity_1d(g_trace, sta, spikes, dt):
+    """estimate nonlinearity in LNP model from conductance trace `g_trace`, filter `sta` 
+    and spike times `spikes`.
+    Returns: bins, histogram of spike ensemble and total histogram"""
+    
+    spk_idx = (np.array(spikes)/dt).astype(int)
+    total_ensemble, spike_ensemble = _calc_projections(g_trace, sta, spk_idx)
+    
+    bins = np.linspace(total_ensemble.min(), total_ensemble.max(),100)
+    n_total, _ = np.histogram(total_ensemble, bins)
+    n_spike, _ = np.histogram(spike_ensemble, bins)
+    return bins[:-1], n_spike, n_total
+
+
+def estimate_nonlinearity_2d(ge_trace, ge_sta, gi_trace, gi_sta, spikes, dt, nbins=10):
+    """estimate two-dimensional nonlinearity in g_e/g_i space from traces and filters
+    Returns: ge_bins, gi_bins and 2d array with estimated function values"""
+
+    spk_idx = (np.array(spikes)/dt).astype(int)
+    ge_proj, ge_spike = _calc_projections(ge_trace, ge_sta, spk_idx)
+    gi_proj, gi_spike = _calc_projections(gi_trace, gi_sta, spk_idx)
+    
+    ge_bins = np.linspace(ge_proj.min(), ge_proj.max(), nbins)
+    gi_bins = np.linspace(gi_proj.min(), gi_proj.max(), nbins)
+    n_total, _, _ = np.histogram2d(ge_proj, gi_proj,  [ge_bins, gi_bins])
+    n_spike, _, _ = np.histogram2d(ge_spike, gi_spike, [ge_bins, gi_bins])
+    f_val = n_spike/n_total
+    f_val[n_total==0] = 0
+    return ge_bins[:-1], gi_bins[:-1], f_val
