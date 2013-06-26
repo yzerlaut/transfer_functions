@@ -103,9 +103,5 @@ if __name__=='__main__':
     fe = float(fe)
     fi = float(fi)
     results = Single_Trial(fe,fi)
-    with file(filename,'w') as fid:
+    with file(path, 'w') as fid:
         cPickle.dump(results,fid)
-    
-
-    
-    
