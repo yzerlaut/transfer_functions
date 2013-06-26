@@ -12,7 +12,7 @@ Ni = 50 ; Qi = 64*1e-9 ; Ti = 10*1e-3; Ei = -80*1e-3
 
 # SIMULATION and ANALYSIS parameters
 dt = 1e-4
-tstop = 500
+tstop = 500 # huge tstop, so that it's limited by the number of spikes
 max_spikes = 1500
 nbins = 20
 window = (-30*1e-3,0) # window for the sta analysis
@@ -42,12 +42,7 @@ def Single_Trial(fe,fi):
     ge_trace,gi_trace = tf.rectify(ge_trace), tf.rectify(gi_trace) ### non zero conductances !!
 
     # run the simulation
-    t, v, spikes = tf.launch_sim(dt, ge_trace, gi_trace, max_spikes = 300)
-    results['stats'] = {
-        'firing_rate':len(spikes)/t.max(),
-        'tstop':t.max(),
-        'spike_number':len(spikes)
-        }
+    t, v, spikes = tf.launch_sim(dt, ge_trace, gi_trace, max_spikes = max_spikes)
     
     # calculate the filters
     lag_ge,sta_ge = tf.calculate_sta(dt, ge_trace, spikes, window)
@@ -74,7 +69,7 @@ def Single_Trial(fe,fi):
 
     ## Rotation of the non-linearity
     rotation_vec = tf.find_slope(ge_spike, gi_spike)
-    rot_matrix = np.array([rotation_vec, [-rotation_vec[0], rotation_vec[1]]])
+    rot_matrix = np.array([rotation_vec, [-rotation_vec[1], rotation_vec[0]]])
 
     results['rotation_vector'] = rotation_vec
 
@@ -89,6 +84,14 @@ def Single_Trial(fe,fi):
     
     results['rotated_nonlinearity'] = (rot_ge_bins, rot_gi_bins, rot_f_val)
 
+    ## stats of the results
+    results['stats'] = {
+        'firing_rate':len(spikes)/t.max(),
+        'tstop':t.max(),
+        'spike_number':len(spikes),
+        'pge_mean' : ge_proj.mean(),
+        'pgi_mean' : gi_proj.mean()
+        }
     return results
 
 
