@@ -61,6 +61,8 @@ def launch_sim(dt, ge, gi, spiking_mech=True, max_spikes=np.inf):
             last_spike = t[i+1]
             spikes.append(last_spike)
             if len(spikes)==max_spikes:
+                t = t[:i+1]
+                v = v[:i+1]
                 break
 
     return t, v, spikes
