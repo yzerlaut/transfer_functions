@@ -7,7 +7,6 @@ Ni = 50 ; Qi = 64*1e-9 ; Ti = 10*1e-3; Ei = -80*1e-3 ; fi= 10
 Vthre=-50*1e-3; refrac = 5*1e-3 ; 
 
 import numpy as np
-import matplotlib.pylab as plt
 from scipy import linalg
 
 def ornstein_uhlenbeck(tmax, dt, mu, sigma, tau):
