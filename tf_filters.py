@@ -67,6 +67,33 @@ def launch_sim(dt, ge, gi, spiking_mech=True, max_spikes=np.inf):
 
     return t, v, spikes
 
+def launch_sim_current(dt, current, spiking_mech=True, max_spikes=np.inf):
+    """ functions that solve the membrane equations for 2 time varying 
+    excitatory and inhibitory conductances
+    N.B. reversal potentials, membrane prop. should be global """
+
+    try: 
+        tstop = len(current)*dt
+    except TypeError:
+        pass
+    
+    t = np.arange(0,tstop,dt)
+    v = np.ones(t.size)*El # refractory if not changed
+
+    last_spike = -tstop # time of the last spike, for the refractory period
+    spikes = []
+    for i in range(t.size-1):
+        if (t[i+1]-last_spike)>refrac:
+            v[i+1] = v[i] + dt/Cm*( Gl*(El-v[i]) + current[i])
+        if v[i+1]>Vthre and spiking_mech:
+            last_spike = t[i+1]
+            spikes.append(last_spike)
+            if len(spikes)==max_spikes:
+                t = t[:i+1]
+                v = v[:i+1]
+                break
+
+    return t, v, spikes
 
 def calculate_sta(dt, x, spikes, window):
     """ function that calculate the STA of x 
