@@ -1,0 +1,75 @@
+#!/usr/bin/env python
+#coding=utf-8
+
+import numpy as np
+from scipy import interpolate
+
+import matplotlib.pyplot as plt
+from matplotlib import mlab
+from mpl_toolkits.mplot3d import Axes3D
+
+import glob
+import cPickle
+import os
+
+def collect_data(path, pattern="params_scan_*.pickle"):
+
+    pge_mean = []
+    pgi_mean = []
+    firing_rate = []
+    for fname in glob.glob(os.path.join(path, pattern)):
+        with file(fname) as fid:
+            data = cPickle.load(fid)
+        stats = data['stats']
+        firing_rate.append(stats['firing_rate'])
+        pge_mean.append(stats['pge_mean'])
+        pgi_mean.append(stats['pgi_mean'])
+
+    pge_mean = np.array(pge_mean)
+    pgi_mean = np.array(pgi_mean)
+    firing_rate = np.array(firing_rate)
+
+    return pge_mean, pgi_mean, firing_rate
+
+def construct_grid(x, y, z, x_range=None, y_range=None, n=40):
+    
+    if x_range is None:
+        x_range = np.percentile(x, [1, 99])
+    if y_range is None:
+        y_range = np.percentile(y, [1, 99])
+
+    xmax, xmin = x_range
+    ymax, ymin = y_range
+
+    xi = np.linspace(xmin, xmax, n)
+    yi = np.linspace(ymin, ymax, n)
+
+    #zi = mlab.griddata(x, y, z, xi, yi)
+    xx, yy = np.meshgrid(xi, yi)
+
+    points = np.vstack((x, y)).T
+    zz = interpolate.griddata(points, z, (xx, yy))
+
+    return xx, yy, zz
+
+
+def plot_transfer_function(x, y, tf):
+
+    xi, yi, zi = construct_grid(x, y, tf)
+    fig = plt.figure()
+    ax1 = fig.add_subplot(221, projection='3d', axisbg='none')
+    ax1.scatter(x, y, tf, c=tf)
+    ax2 = fig.add_subplot(224)
+    ax2.imshow(zi, interpolation='nearest')
+
+    ax3 = fig.add_subplot(222)
+    ax3.scatter(x, y, c=tf)
+
+if __name__ == "__main__":
+    import sys
+
+    pge, pgi, firing_rate = collect_data(sys.argv[1])
+
+    plot_transfer_function(pge, pgi, firing_rate)
+    plt.show()
+
