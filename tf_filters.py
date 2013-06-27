@@ -123,7 +123,7 @@ def whiten_filter_regularised(cov_matrix, sta_filter, cutoff=0):
     return sta_whitened
 
 def _calc_projections(g_trace, sta, spk_idx):
-    total_ensemble = np.convolve(g_trace, sta)
+    total_ensemble = np.convolve(g_trace - g_trace.mean(), sta)
     spike_ensemble = total_ensemble[spk_idx+len(sta)]
     return total_ensemble, spike_ensemble
 
