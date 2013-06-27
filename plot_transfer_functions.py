@@ -34,9 +34,9 @@ def collect_data(path, pattern="params_scan_*.pickle"):
 def construct_grid(x, y, z, x_range=None, y_range=None, n=40):
     
     if x_range is None:
-        x_range = np.percentile(x, [1, 99])
+        x_range = x.min(), x.max()
     if y_range is None:
-        y_range = np.percentile(y, [1, 99])
+        y_range = y.min(), y.max()
 
     xmax, xmin = x_range
     ymax, ymin = y_range
@@ -48,22 +48,27 @@ def construct_grid(x, y, z, x_range=None, y_range=None, n=40):
     xx, yy = np.meshgrid(xi, yi)
 
     points = np.vstack((x, y)).T
-    zz = interpolate.griddata(points, z, (xx, yy))
+    zz = interpolate.griddata(points, z, (xx, yy), 'linear')
 
     return xx, yy, zz
 
 
 def plot_transfer_function(x, y, tf):
 
-    xi, yi, zi = construct_grid(x, y, tf)
+
+    x_range = np.percentile(x, [1, 99])
+    y_range = np.percentile(y, [1, 99])
+    xi, yi, zi = construct_grid(x, y, tf, x_range, y_range)
     fig = plt.figure()
     ax1 = fig.add_subplot(221, projection='3d', axisbg='none')
     ax1.scatter(x, y, tf, c=tf)
     ax2 = fig.add_subplot(224)
-    ax2.imshow(zi, interpolation='nearest')
+    ax2.contourf(xi, yi, zi)
 
     ax3 = fig.add_subplot(222)
     ax3.scatter(x, y, c=tf)
+    ax3.set_xlim(x_range)
+    ax3.set_ylim(y_range)
 
 if __name__ == "__main__":
     import sys
