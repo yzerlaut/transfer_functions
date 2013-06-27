@@ -75,6 +75,7 @@ def calculate_sta(dt, x, spikes, window):
     spike_train = np.histogram(spikes, np.arange(len(x))*dt)[0]
     min_index = int(window[0]/dt)
     max_index = len(spike_train) - int(window[1]/dt)
+    x = x - np.mean(x)
     sta = np.correlate(x, spike_train[-min_index-1:max_index]) ### TO BE CHECK
     lag = np.arange(len(sta))*dt+window[0]
     return lag,sta/len(spikes)
@@ -107,7 +108,7 @@ def whiten_filter(cov_matrix, sta_filter):
     evals, evecs = np.linalg.eig(cov_matrix)
     d = 1./np.sqrt(evals)
     whitening_filter = np.dot(evecs,np.dot(np.diag(d),evecs.T))
-    sta_whitened = np.dot(whitening_filter, sta_filter-sta_filter.mean())
+    sta_whitened = np.dot(whitening_filter, sta_filter)
     return sta_whitened
 
 def whiten_filter_regularised(cov_matrix, sta_filter, cutoff=0):

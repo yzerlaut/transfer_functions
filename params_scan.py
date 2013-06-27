@@ -12,7 +12,6 @@ Ni = 50 ; Qi = 64*1e-9 ; Ti = 10*1e-3; Ei = -80*1e-3
 
 # SIMULATION and ANALYSIS parameters
 dt = 1e-4
-tstop = 500 # huge tstop, so that it's limited by the number of spikes
 max_spikes = 1500
 nbins = 20
 window = (-30*1e-3,0) # window for the sta analysis
@@ -25,7 +24,8 @@ def pack_parameters(fe,fi):
     parameters ={
         'dt' : dt , 'window' : window, 
         'fe' : fe, 'Ne' : Ne, 'Qe' : Qe, 'Te' : Te,
-        'fi' : fi, 'Ni' : Ni, 'Qi' : Qi, 'Ti' : Ti
+        'fi' : fi, 'Ni' : Ni, 'Qi' : Qi, 'Ti' : Ti,
+        'input_process' : input_process
         }
     return parameters
     
@@ -36,9 +36,15 @@ def Single_Trial(fe,fi):
     # conductance values
     ge_mu, ge_sigma = fe*Ne*Qe*Te, Qe*np.sqrt(fe*Ne*Te/2)
     gi_mu, gi_sigma = fi*Ni*Qi*Ti, Qi*np.sqrt(fi*Ni*Ti/2)
+    
     # prepare the conductance vectors
-    ge_trace = tf.ornstein_uhlenbeck(tstop, dt, ge_mu, ge_sigma, Te)
-    gi_trace = tf.ornstein_uhlenbeck(tstop, dt, gi_mu, gi_sigma, Ti)
+    if input_process == 'OU':
+        ge_trace = tf.ornstein_uhlenbeck(tstop, dt, ge_mu, ge_sigma, Te)
+        gi_trace = tf.ornstein_uhlenbeck(tstop, dt, gi_mu, gi_sigma, Ti)
+    elif input_process == 'white':
+        ge_trace = tf.white_gaussian(tstop, dt, ge_mu, ge_sigma)
+        gi_trace = tf.white_gaussian(tstop, dt, gi_mu, gi_sigma)
+
     ge_trace,gi_trace = tf.rectify(ge_trace), tf.rectify(gi_trace) ### non zero conductances !!
 
     # run the simulation
@@ -47,11 +53,16 @@ def Single_Trial(fe,fi):
     # calculate the filters
     lag_ge,sta_ge = tf.calculate_sta(dt, ge_trace, spikes, window)
     cov_ge = tf.estimate_cov_matrix(ge_trace, len(sta_ge))
-    sta_filtered_ge = tf.whiten_filter(cov_ge,sta_ge)
 
     lag_gi,sta_gi = tf.calculate_sta(dt, gi_trace, spikes, window)
     cov_gi = tf.estimate_cov_matrix(gi_trace, len(sta_gi))
-    sta_filtered_gi = tf.whiten_filter(cov_gi,sta_gi)
+    
+    if input_process == 'OU':
+        sta_filtered_ge = tf.whiten_filter(cov_ge,sta_ge)
+        sta_filtered_gi = tf.whiten_filter(cov_gi,sta_gi)
+    else:
+        sta_filtered_ge = sta_ge
+        sta_filtered_gi = sta_gi
 
     results['ge_filter'] = sta_filtered_ge
     results['gi_filter'] = sta_filtered_gi
@@ -89,19 +100,38 @@ def Single_Trial(fe,fi):
         'firing_rate':len(spikes)/t.max(),
         'tstop':t.max(),
         'spike_number':len(spikes),
-        'pge_mean' : ge_proj.mean(),
-        'pgi_mean' : gi_proj.mean()
+        'pge_mean' : ge_proj.mean(), 'pge_std' : ge_proj.std(),
+        'pgi_mean' : gi_proj.mean(), 'pgi_std' : gi_proj.std(),
+        'ge_mean' : ge_trace.mean(), 'ge_std' : ge_trace.std(),
+        'gi_mean' : gi_trace.mean(), 'gi_std' : gi_trace.std()
         }
     return results
 
 
 if __name__=='__main__':
     import sys, os
-    _, fe, fi, path = sys.argv
-    filename = "params_scan_fe%s_fi%s.pickle" %(fe, fi)
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('fe')
+    parser.add_argument('fi')
+    parser.add_argument('path')
+    parser.add_argument('--pattern', '-p', help='filename pattern with string formatting',
+            default="params_scan_fe{fe}_fi{fi}.pickle")
+    parser.add_argument('--input-process', choices={'OU', 'white'}, default='OU')
+    parser.add_argument('--tstop', default=500, type=float)
+
+    args = parser.parse_args()
+    path = args.path
+    pattern = args.pattern
+    fe = args.fe
+    fi = args.fi
+    input_process = args.input_process
+    tstop = args.tstop
+
+    filename = pattern.format(fe=fe, fi=fi)
     path = os.path.join(path,filename)
-    fe = float(fe)
-    fi = float(fi)
+    fe, fi = float(fe), float(fi)
     results = Single_Trial(fe,fi)
     with file(path, 'w') as fid:
         cPickle.dump(results,fid)
