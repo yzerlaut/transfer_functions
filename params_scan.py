@@ -130,8 +130,9 @@ if __name__=='__main__':
     tstop = args.tstop
 
     filename = pattern.format(fe=fe, fi=fi)
-    path = os.path.join(path,filename)
+    path = os.path.join(path, filename)
     fe, fi = float(fe), float(fi)
     results = Single_Trial(fe,fi)
+    print path
     with file(path, 'w') as fid:
         cPickle.dump(results,fid)

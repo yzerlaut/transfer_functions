@@ -22,8 +22,8 @@ def collect_data(path, pattern="params_scan_*.pickle"):
             data = cPickle.load(fid)
         stats = data['stats']
         firing_rate.append(stats['firing_rate'])
-        pge_mean.append(stats['pge_mean'])
-        pgi_mean.append(stats['pgi_mean'])
+        pge_mean.append(stats['ge_mean'])
+        pgi_mean.append(stats['gi_mean'])
 
     pge_mean = np.array(pge_mean)
     pgi_mean = np.array(pgi_mean)
@@ -67,13 +67,20 @@ def plot_transfer_function(x, y, tf):
 
     ax3 = fig.add_subplot(222)
     ax3.scatter(x, y, c=tf)
+    ax3.set_xlabel('Pge')
+    ax3.set_ylabel('Pgi')
     ax3.set_xlim(x_range)
     ax3.set_ylim(y_range)
 
 if __name__ == "__main__":
-    import sys
+    import argparse
 
-    pge, pgi, firing_rate = collect_data(sys.argv[1])
+    parser = argparse.ArgumentParser()
+    parser.add_argument('path')
+    parser.add_argument('--pattern', '-p', default='*.pickle')
+
+    args = parser.parse_args()
+    pge, pgi, firing_rate = collect_data(args.path, args.pattern)
 
     plot_transfer_function(pge, pgi, firing_rate)
     plt.show()
