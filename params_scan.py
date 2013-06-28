@@ -119,8 +119,8 @@ if __name__=='__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('fe')
-    parser.add_argument('fi')
+    parser.add_argument('fe', type=float)
+    parser.add_argument('fi', type=float)
     parser.add_argument('path')
     parser.add_argument('--pattern', '-p', help='filename pattern with string formatting',
             default="params_scan_fe{fe}_fi{fi}.pickle")
