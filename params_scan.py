@@ -35,7 +35,7 @@ def Single_Trial(fe,fi, ge_sigma=None, gi_sigma=None):
     results = {} # dictionary for results
     results['parameters'] = pack_parameters(fe,fi)
     # conductance values
-    ge_mu = fe*Ne*Qe*Te,     
+    ge_mu = fe*Ne*Qe*Te
     gi_mu = fi*Ni*Qi*Ti
 
     if ge_sigma is None:
@@ -128,6 +128,7 @@ if __name__=='__main__':
     parser.add_argument('--tstop', default=500, type=float)
     parser.add_argument('--ge_sigma', default=None, type=float)
     parser.add_argument('--gi_sigma', default=None, type=float)
+    parser.add_argument('--dry-run', action='store_true')
 
     args = parser.parse_args()
     path = args.path
@@ -141,6 +142,9 @@ if __name__=='__main__':
     filename = pattern.format(**vars(args))
     path = os.path.join(path, filename)
     print "Results will be saved to:", path
+
+    if args.dry_run:
+        sys.exit(0)
     results = Single_Trial(fe, fi, ge_sigma, gi_sigma)
     
     with file(path, 'w') as fid:
