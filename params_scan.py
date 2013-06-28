@@ -25,18 +25,24 @@ def pack_parameters(fe,fi):
         'dt' : dt , 'window' : window, 
         'fe' : fe, 'Ne' : Ne, 'Qe' : Qe, 'Te' : Te,
         'fi' : fi, 'Ni' : Ni, 'Qi' : Qi, 'Ti' : Ti,
+        'ge_sigma' : ge_sigma, 'gi_sigma' : gi_sigma,
         'input_process' : input_process
         }
     return parameters
     
-def Single_Trial(fe,fi):
+def Single_Trial(fe,fi, ge_sigma=None, gi_sigma=None):
 
     results = {} # dictionary for results
     results['parameters'] = pack_parameters(fe,fi)
     # conductance values
-    ge_mu, ge_sigma = fe*Ne*Qe*Te, Qe*np.sqrt(fe*Ne*Te/2)
-    gi_mu, gi_sigma = fi*Ni*Qi*Ti, Qi*np.sqrt(fi*Ni*Ti/2)
-    
+    ge_mu = fe*Ne*Qe*Te,     
+    gi_mu = fi*Ni*Qi*Ti
+
+    if ge_sigma is None:
+        ge_sigma = Qe*np.sqrt(fe*Ne*Te/2)
+    if gi_sigma is None:
+        gi_sigma = Qi*np.sqrt(fi*Ni*Ti/2)
+ 
     # prepare the conductance vectors
     if input_process == 'OU':
         ge_trace = tf.ornstein_uhlenbeck(tstop, dt, ge_mu, ge_sigma, Te)
@@ -120,6 +126,8 @@ if __name__=='__main__':
             default="params_scan_fe{fe}_fi{fi}.pickle")
     parser.add_argument('--input-process', choices={'OU', 'white'}, default='OU')
     parser.add_argument('--tstop', default=500, type=float)
+    parser.add_argument('--ge_sigma', default=None, type=float)
+    parser.add_argument('--gi_sigma', default=None, type=float)
 
     args = parser.parse_args()
     path = args.path
@@ -128,11 +136,12 @@ if __name__=='__main__':
     fi = args.fi
     input_process = args.input_process
     tstop = args.tstop
+    ge_sigma, gi_sigma = args.ge_sigma, args.gi_sigma
 
-    filename = pattern.format(fe=fe, fi=fi)
+    filename = pattern.format(**vars(args))
     path = os.path.join(path, filename)
     fe, fi = float(fe), float(fi)
-    results = Single_Trial(fe,fi)
-    print path
+    results = Single_Trial(fe, fi, ge_sigma, gi_sigma)
+    
     with file(path, 'w') as fid:
         cPickle.dump(results,fid)
