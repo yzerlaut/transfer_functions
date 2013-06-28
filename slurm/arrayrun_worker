@@ -32,8 +32,8 @@ $| = 1 if DEBUG;
 ## Configuration:
 my $maxJobs = 100;		# Max total number of jobs in queue
 my $maxIdleJobs = 10;		# Max number of pending jobs in queue
-my $maxBurst = 10;		# Max number of jobs to submit at a time
-my $pollSeconds = 180;		# How many seconds to sleep between each poll
+my $maxBurst = 40;		# Max number of jobs to submit at a time
+my $pollSeconds = 60;		# How many seconds to sleep between each poll
 my $maxFails = 300;		# Max errors to accept when submitting a job
 my $retrySleep = 300;		# Seconds to sleep between each retry
 my $doubleCheckSleep = 30;	# Seconds to sleep before double checking
@@ -178,6 +178,7 @@ sub check_queue {
 	    print " Job $id has finished:\n" if DEBUG;
 	    my @sacctres = `sacct -o jobid,start,end,maxvmsize,maxrss,state,exitcode -S $starttime -j $id 2>&1`;
 	    if ($? != 0) {
+
 		print "  sacct failed with error code '$?',\n  message: ",
 		  @sacctres, "  I will assume job $id finished successfully\n";
 	    } else {
@@ -217,11 +218,11 @@ while (@jobArray) {
     print scalar @jobArray, " more job(s) to submit\n" if DEBUG;
     ## Submit as many as possible:
     my $nToSubmit = min(scalar @jobArray,
-			$maxJobs - @{$runids} - @{$pendids},
-			$maxIdleJobs - @{$pendids},
+			$maxJobs - scalar(@{$runids}) - scalar(@{$pendids}),
+			##$maxIdleJobs - scalar(@{$pendids}),
 			$maxBurst);
-    print scalar(@{$runids}), " job(s) are running, and ",
-        scalar(@{$pendids}), " are waiting\n" if DEBUG;
+    print scalar(@{$runids}), "/", $maxJobs, " job(s) are running, and ",
+        scalar(@{$pendids}), "/", $maxIdleJobs, " are waiting\n" if DEBUG;
     print "Submitting $nToSubmit job(s):\n" if DEBUG;
     for (my $i = 1; $i <= $nToSubmit; $i++) {
 	my $currJob = shift @jobArray;

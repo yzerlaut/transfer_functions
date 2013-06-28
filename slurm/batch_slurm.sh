@@ -13,8 +13,8 @@
 #
 # CPU REQUEST
 #
-#SBATCH --ntasks=6
-#SBATCH --nodes=10
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
 #SBATCH --share
 
 
@@ -41,4 +41,4 @@ echo "SLURM_MEM_PER_NODE           =   $SLURM_MEM_PER_NODE"
 echo "SLURM_PRIO_PROCESS           =   $SLURM_PRIO_PROCESS"
 echo "------------------------------------------------------------------------------"
 
-/home/bartosz/slurm/arrayrun 0-400 batch_worker.sh
+/home/bartosz/slurm/arrayrun 0-285 batch_worker.sh 1e-8 3e-8
