@@ -140,7 +140,7 @@ if __name__=='__main__':
 
     filename = pattern.format(**vars(args))
     path = os.path.join(path, filename)
-    fe, fi = float(fe), float(fi)
+    print "Results will be saved to:", path
     results = Single_Trial(fe, fi, ge_sigma, gi_sigma)
     
     with file(path, 'w') as fid:
