@@ -12,7 +12,7 @@ import glob
 import cPickle
 import os
 
-def collect_data(path, pattern="params_scan_*.pickle"):
+def collect_data(path, pattern="*.pickle"):
 
     pge_mean = []
     pgi_mean = []
@@ -22,8 +22,8 @@ def collect_data(path, pattern="params_scan_*.pickle"):
             data = cPickle.load(fid)
         stats = data['stats']
         firing_rate.append(stats['firing_rate'])
-        pge_mean.append(stats['ge_mean'])
-        pgi_mean.append(stats['gi_mean'])
+        pge_mean.append(stats['pge_mean'])
+        pgi_mean.append(stats['pgi_mean'])
 
     pge_mean = np.array(pge_mean)
     pgi_mean = np.array(pgi_mean)
@@ -46,20 +46,22 @@ def construct_grid(x, y, z, x_range=None, y_range=None, n=40):
 
     #zi = mlab.griddata(x, y, z, xi, yi)
     xx, yy = np.meshgrid(xi, yi)
+    zz = griddata(x, y, z, xx, yy)
+    return xx, yy, zz
 
+def griddata(x, y, z, xx, yy):
     points = np.vstack((x, y)).T
     zz = interpolate.griddata(points, z, (xx, yy), 'linear')
 
-    return xx, yy, zz
+    return zz
 
 
 def plot_transfer_function(x, y, tf):
 
-
+    fig = plt.gcf()
     x_range = np.percentile(x, [1, 99])
     y_range = np.percentile(y, [1, 99])
     xi, yi, zi = construct_grid(x, y, tf, x_range, y_range)
-    fig = plt.figure()
     ax1 = fig.add_subplot(221, projection='3d', axisbg='none')
     ax1.scatter(x, y, tf, c=tf)
     ax2 = fig.add_subplot(224)
@@ -82,6 +84,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     pge, pgi, firing_rate = collect_data(args.path, args.pattern)
 
+    plt.figure()
     plot_transfer_function(pge, pgi, firing_rate)
     plt.show()
 

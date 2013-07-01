@@ -52,7 +52,7 @@ def plot_func(results):
     f2 = plt.figure(figsize=(8,5))
     ax21 = f2.add_subplot(111)
     plt.title('Non-Linearity with principal component axis')
-    z_max = min(10,f_val.max()) # max 10 Hz !!! or below if not reached...
+    z_max = min(50,f_val.max()) # max 10 Hz !!! or below if not reached...
     img21  = ax21.contourf(ge_bins, gi_bins, f_val,np.linspace(0, z_max, 15))
     cb21 = plt.colorbar(img21)
     cb21.set_label('Hz')
