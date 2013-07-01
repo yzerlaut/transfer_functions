@@ -4,7 +4,7 @@
 import numpy as np
 from scipy import integrate
 
-def tau_eff(fe,fi,params):
+def tau_eff(fe, fi, params):
     """
     args : params
     returns : the efective membrane time constant
@@ -40,7 +40,10 @@ def rudolph_rho_v(V, param_rudolph):
     ge = param_rudolph['mu_ge'];sge = param_rudolph['s_ge'];Te=param_rudolph['Te'];Ee=param_rudolph['Ee']
     gi = param_rudolph['mu_gi'];sgi = param_rudolph['s_gi'];Ti=param_rudolph['Ti'];Ei=param_rudolph['Ei']
 
-    np.where(ge<=0,ge,1e-4);np.where(gi<=0,gi,1e-4)# security in the calculus (see A2)
+    if ge.any()<0 or gi.any()<0:
+        print "problem with the conductance traces, <0"
+        break
+    
     Tm = Cm/(ge+gi+Gl) # effective membrane time constant
 
     Te = 2*Te*Tm/(Te+Tm) # correction
@@ -67,7 +70,8 @@ def rudolph_rho_normed_shotnoise(V, fe, fi, params):
      here we return the same as in 'rudolph_rho_normed',
     we just adapt the formalism so that it takes shot-noise parameters
     """
-    # here we copy the aparams dict() !!!
+    param_rudolph = params # here we copy the params dict() !!!
+
     param_rudolph['mu_ge'], param_rudolph['s_ge'] = \
       tf.campbell_theorem_single_exp(
           params['Ne']*fe, params['Qe'], params['Te'])
@@ -77,22 +81,34 @@ def rudolph_rho_normed_shotnoise(V, fe, fi, params):
 
     return rudolph_rho_normed(V, param_rudolph)
 
-def proba_rudolph(fe,fi,params):
+def proba_rudolph(param_rudolph):
+    
     threshold = params['Vthre']
     # version with analytic integration
-    integrand = lambda x: rudolph_rho_v(x,fe,fi,params)
-    N,error = integrate.quad(integrand,-np.inf,np.inf) # normalization factor
-    return integrate.quad(integrand,threshold,np.inf)[0]/N
-    """
-    # version with discrete integration
-    vv = np.linspace(threshold,0,1e2)
-    distr = rudolph_rho_normed(vv,fe,fi,params)
-    return integrate.cumtrapz(distr,vv)[0]
-    """
+    integrand = lambda x: rudolph_rho_v(x, param_rudolph)
+    N,error = integrate.quad(integrand, -np.inf, np.inf) # normalization factor
+    
+    return integrate.quad(integrand, threshold, np.inf)[0]/N
 
-def kuhn_func(fe,fi,params):
-    return proba_rudolph(fe,fi,params)/tau_eff(fe,fi,params)
+def proba_rudolph_shotnoise(fe, fi, params):
+    """
+     here we return the same as in 'rudolph_rho_normed',
+    we just adapt the formalism so that it takes shot-noise parameters
+    """
+    param_rudolph = params # here we copy the params dict() !!!
+
+    param_rudolph['mu_ge'], param_rudolph['s_ge'] = \
+      tf.campbell_theorem_single_exp(
+          params['Ne']*fe, params['Qe'], params['Te'])
+    param_rudolph['mu_gi'], param_rudolph['s_gi'] = \
+      tf.campbell_theorem_single_exp(
+          params['Ni']*fi, params['Qi'], params['Ti'])
+
+    return proba_rudolph(param_rudolph)
+
+def kuhn_func_shotnoise(fe, fi, params):
+    rate =  proba_rudolph_shotnoise(fe, fi, params)
+    rate /= tau_eff(fe, fi, params)
+    return rate
     
     
-        
-
