@@ -65,10 +65,13 @@ def rectify(x):
    
     return x*(x>0)
 
-def leaky_iaf(tmax, dt, i_exc, i_inh=null, spiking_mech=True, max_spikes=np.inf):
+def leaky_iaf(tmax, dt, i_exc, i_inh=null, Cm=2e-10, Gl=10e-8, El=-65e-3,
+              spiking_mech=True, max_spikes=np.inf):
     """ functions that solve the membrane equations for 2 time varying 
     excitatory and inhibitory conductances
-    N.B. reversal potentials, membrane prop. should be global """
+    args : tmax, dt, i_exc, i_inh, Cm, Gl, El, spiking_mech=True, max_spikes=inf
+    returns : t, v, spikes
+    """
 
     last_spike = -np.inf # time of the last spike, for the refractory period
     max_steps = int(tmax/dt)
