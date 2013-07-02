@@ -50,13 +50,32 @@ def conductance(generator, e_reversal):
    
     return _wrapper, stored_conductances
 
-def psp_train(spike_list, e_reversal):
+def poisson_spike_generator(frequency):
+    next_spike = 0
+    while True:
+        next_spike += np.random.exponential(1./frequency)
+        yield next_spike
+
+def conductance_shotnoise(spike_generator, kernel, e_reversal, **kernel_params):
     #idea to be tested
+    stored_conductances = []
+    spike_list = [next(spike_generator)]
     
+
+    def exp(t,spike_list):
+        spk_array = np.array(spike_list)
+        return kernel_params['Q']*np.exp(-(t-spk_array)/kernel_params['T'])
+
+    kernel_functions = { 'exp' : exp }
+
     def _wrapper(v, t):
-        return sum((np.exp(-(t-t_spike))*(t>t_spike) for t_spike in spike_list))
+        if t>=spike_list[-1]:
+            spike_list.append(next(spike_generator))
+        new_g = kernel_functions[kernel](t,spike_list[:-1]).sum()
+        stored_conductances.append(new_g)
+        return new_g * (e_reversal - v)
    
-    return _wrapper
+    return _wrapper, stored_conductances, spike_list
 
 @apply
 def rectify(x):
@@ -65,7 +84,7 @@ def rectify(x):
    
     return x*(x>0)
 
-def leaky_iaf(tmax, dt, i_exc, i_inh=null, Cm=2e-10, Gl=10e-8, El=-65e-3,
+def leaky_iaf(tmax, dt, i_exc, i_inh=null, Cm=2e-10, Gl=1e-8, El=-65e-3,
               spiking_mech=True, max_spikes=np.inf):
     """ functions that solve the membrane equations for 2 time varying 
     excitatory and inhibitory conductances
