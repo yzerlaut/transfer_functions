@@ -22,8 +22,8 @@ def collect_data(path, pattern="*.pickle"):
             data = cPickle.load(fid)
         stats = data['stats']
         firing_rate.append(stats['firing_rate'])
-        pge_mean.append(stats['pge_mean'])
-        pgi_mean.append(stats['pgi_mean'])
+        pge_mean.append(stats['ge_mean'])
+        pgi_mean.append(stats['gi_mean'])
 
     pge_mean = np.array(pge_mean)
     pgi_mean = np.array(pgi_mean)
