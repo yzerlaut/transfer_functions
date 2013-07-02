@@ -36,6 +36,9 @@ def current(generator):
    
     return _wrapper, stored_currents
 
+def null(v, t):
+    return 0
+
 def conductance(generator, e_reversal):
     
     stored_conductances = []
@@ -62,7 +65,7 @@ def rectify(x):
    
     return x*(x>0)
 
-def leaky_iaf(tmax, dt, i_exc, i_inh, spiking_mech=True, max_spikes=np.inf):
+def leaky_iaf(tmax, dt, i_exc, i_inh=null, spiking_mech=True, max_spikes=np.inf):
     """ functions that solve the membrane equations for 2 time varying 
     excitatory and inhibitory conductances
     N.B. reversal potentials, membrane prop. should be global """
@@ -77,9 +80,11 @@ def leaky_iaf(tmax, dt, i_exc, i_inh, spiking_mech=True, max_spikes=np.inf):
 
     for i in xrange(max_steps):
         t = i*dt
+        
+        iexc = i_exc(v,t)
+        iinh = i_inh(v,t)
+        
         if (t - last_spike)>refrac:
-            iexc = i_exc(v,t)
-            iinh = i_inh(v,t)
             v = v + dt/Cm*( Gl*(El-v) + iexc + iinh)
         
         potential_trace.append(v)
