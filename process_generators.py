@@ -4,13 +4,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# parameters
-Gl= 1e-8 ; Cm= 0.2*1e-9; El = -65*1e-3 
-Ne = 200 ; Qe = 6*1e-9 ; Te = 5*1e-3; Ee = 0*1e-3 ; fe = 4
-Ni = 50 ; Qi = 64*1e-9 ; Ti = 10*1e-3; Ei = -80*1e-3 ; fi= 10
-Vthre=-50*1e-3; refrac = 5*1e-3 ; 
-
-
 def white_gaussian(dt, mu, sigma):
     """return a realisation of a gaussian white noise process"""
     
@@ -61,16 +54,23 @@ def conductance_shotnoise(spike_generator, kernel, e_reversal, **kernel_params):
     stored_conductances = []
     spike_list = [next(spike_generator)]
     
-
     def exp(t,spike_list):
         spk_array = np.array(spike_list)
         return kernel_params['Q']*np.exp(-(t-spk_array)/kernel_params['T'])
 
-    kernel_functions = { 'exp' : exp }
+    def alpha(t,spike_list):
+        spk_array = np.array(spike_list)
+        return kernel_params['Q']*(t-spk_array)/kernel_params['T']*\
+                           np.exp(-(t-spk_array)/kernel_params['T'])
+    
+    kernel_functions = { 'exp' : exp ,'alpha' : alpha}
 
     def _wrapper(v, t):
         if t>=spike_list[-1]:
-            spike_list.append(next(spike_generator))
+            nxt_spk = next(spike_generator)
+            while nxt_spk<=t:
+                nxt_spk = next(spike_generator)
+                spike_list.append(nxt_spk)
         new_g = kernel_functions[kernel](t,spike_list[:-1]).sum()
         stored_conductances.append(new_g)
         return new_g * (e_reversal - v)
@@ -85,10 +85,11 @@ def rectify(x):
     return x*(x>0)
 
 def leaky_iaf(tmax, dt, i_exc, i_inh=null, Cm=2e-10, Gl=1e-8, El=-65e-3,
-              spiking_mech=True, max_spikes=np.inf):
+              Vthre=-50e-3, Vreset=-60e-3, t_refrac = 5e-3, max_spikes=np.inf):
     """ functions that solve the membrane equations for 2 time varying 
     excitatory and inhibitory conductances
-    args : tmax, dt, i_exc, i_inh, Cm, Gl, El, spiking_mech=True, max_spikes=inf
+    args : tmax, dt, i_exc, i_inh, Cm, Gl, El,
+    Vreset, Vthre, t_refrac, spiking_mech=True, max_spikes=inf
     returns : t, v, spikes
     """
 
@@ -98,7 +99,7 @@ def leaky_iaf(tmax, dt, i_exc, i_inh=null, Cm=2e-10, Gl=1e-8, El=-65e-3,
     spikes = []
     potential_trace = []
     
-    v, t, n_spikes = El, 0, 0
+    v, t, n_spikes = Vreset, 0, 0
 
     for i in xrange(max_steps):
         t = i*dt
@@ -106,16 +107,16 @@ def leaky_iaf(tmax, dt, i_exc, i_inh=null, Cm=2e-10, Gl=1e-8, El=-65e-3,
         iexc = i_exc(v,t)
         iinh = i_inh(v,t)
         
-        if (t - last_spike)>refrac:
+        if (t - last_spike)>t_refrac:
             v = v + dt/Cm*( Gl*(El-v) + iexc + iinh)
         
         potential_trace.append(v)
 
-        if v > Vthre and spiking_mech:
+        if v > Vthre:
             last_spike = t
             spikes.append(last_spike)
             n_spikes += 1
-            v = El # reset!!!
+            v = Vreset
             if n_spikes == max_spikes:
                 break
     
@@ -125,26 +126,26 @@ def leaky_iaf(tmax, dt, i_exc, i_inh=null, Cm=2e-10, Gl=1e-8, El=-65e-3,
     return t, potential_trace, spikes
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    import matplotlib.pyplot as plt
+#     import matplotlib.pyplot as plt
 
-    mu_exc, mu_inh = Qe*Te*Ne*fe, Qi*Ti*Ni*fi
-    sigma_exc, sigma_inh = Qe*np.sqrt(Te*fe*Ne), Qi*np.sqrt(Ti*fi*Ni)
-    E_exc, E_inh = 0, -80e-3
-    dt = 0.1e-3
+#     mu_exc, mu_inh = Qe*Te*Ne*fe, Qi*Ti*Ni*fi
+#     sigma_exc, sigma_inh = Qe*np.sqrt(Te*fe*Ne), Qi*np.sqrt(Ti*fi*Ni)
+#     E_exc, E_inh = 0, -80e-3
+#     dt = 0.1e-3
 
-    gexc, exc_list = conductance(
-                           rectify(
-                               white_gaussian(dt, mu_exc, sigma_exc)
-                           ), 0)
+#     gexc, exc_list = conductance(
+#                            rectify(
+#                                white_gaussian(dt, mu_exc, sigma_exc)
+#                            ), 0)
     
-    ginh, inh_list = conductance(
-                           rectify(
-                               white_gaussian(dt, mu_inh, sigma_inh)
-                           ), -80)
+#     ginh, inh_list = conductance(
+#                            rectify(
+#                                white_gaussian(dt, mu_inh, sigma_inh)
+#                            ), -80)
     
-    t, v_m, spikes = leaky_iaf(2, dt, gexc, ginh)
+#     t, v_m, spikes = leaky_iaf(2, dt, gexc, ginh)
 
-    plt.plot(t, v_m)
-    plt.show()
+#     plt.plot(t, v_m)
+#     plt.show()
