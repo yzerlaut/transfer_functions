@@ -68,6 +68,7 @@ def conductance_shotnoise(spike_generator, kernel, e_reversal, **kernel_params):
     def _wrapper(v, t):
         if t>=spike_list[-1]:
             nxt_spk = next(spike_generator)
+            spike_list.append(nxt_spk)
             while nxt_spk<=t:
                 nxt_spk = next(spike_generator)
                 spike_list.append(nxt_spk)
