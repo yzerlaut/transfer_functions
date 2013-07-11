@@ -4,6 +4,19 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+def ornstein_uhlenbeck(dt, mu, sigma, tau):
+    """return a realisation of ornstein-uhlenbeck process"""
+
+    diffcoef = 2*sigma**2/tau
+    A = np.sqrt(diffcoef*tau/2.*(1-np.exp(-2*dt/tau)))
+    y0 = mu
+
+    y = y0
+    while True:
+        noise = np.random.randn()
+        y = y0 + (y - y0) * np.exp(-dt/tau) + A * noise
+        yield y
+
 def white_gaussian(dt, mu, sigma):
     """return a realisation of a gaussian white noise process"""
     
